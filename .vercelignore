@@ -1,0 +1,6 @@
+.env
+node_modules
+docker-compose.yml
+server.out.log
+server.err.log
+npm-debug.log*

@@ -32,6 +32,12 @@ const attendanceSelect = `
   FROM attendance_entries ae
   LEFT JOIN users u ON LOWER(u.email) = LOWER(ae.employee_email)
 `;
+let initDbPromise;
+
+async function ensureDbInitialized() {
+  initDbPromise ||= initDb();
+  await initDbPromise;
+}
 
 app.disable("x-powered-by");
 app.use((req, res, next) => {
@@ -77,6 +83,15 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.static(__dirname, { dotfiles: "deny", fallthrough: true }));
+app.use("/api", async (req, _res, next) => {
+  if (req.path === "/health") return next();
+  try {
+    await ensureDbInitialized();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 function normalizeUser(row) {
   const department = departments.includes(row.department) ? row.department : "NOC";
@@ -1431,9 +1446,14 @@ app.use((error, _req, res, _next) => {
   res.status(status).json({ error: status >= 500 ? "Server error." : error.message || "Request failed." });
 });
 
-await initDb();
+const isEntrypoint = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-app.listen(port, host, () => {
-  console.log(`FastShift server running at http://${host}:${port}`);
-  console.log(`Open locally at http://localhost:${port}`);
-});
+if (isEntrypoint && !process.env.VERCEL) {
+  await ensureDbInitialized();
+  app.listen(port, host, () => {
+    console.log(`FastShift server running at http://${host}:${port}`);
+    console.log(`Open locally at http://localhost:${port}`);
+  });
+}
+
+export default app;

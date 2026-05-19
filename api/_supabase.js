@@ -20,10 +20,10 @@ function shouldUseSsl(connectionString) {
   return process.env.NODE_ENV === "production" || /supabase\.(co|com)|pooler\.supabase\.com/i.test(String(connectionString || ""));
 }
 
-const connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
+const connectionString = process.env.SUPABASE_DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL;
 
 if (!connectionString) {
-  throw new Error("Missing database connection string. Set SUPABASE_DATABASE_URL or DATABASE_URL.");
+  throw new Error("Missing database connection string. Set SUPABASE_DATABASE_URL, POSTGRES_URL, or DATABASE_URL.");
 }
 
 export const pool = new Pool({

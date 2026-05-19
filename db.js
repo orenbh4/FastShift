@@ -1,5 +1,7 @@
 ﻿import { pool } from "./api/_supabase.js";
 
+export { pool };
+
 export async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -107,4 +109,3 @@ export async function initDb() {
     UPDATE users SET role = CASE WHEN department = 'SOC' THEN 'Tier 1' ELSE 'NOC - ×ž×©×¨×” ×ž×œ××”' END WHERE role = '×¢×•×‘×“/×ª';
   `);
 }
-

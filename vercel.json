@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/[...path].cjs"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/favicon.svg"
+    },
+    {
+      "src": "/favicon.png",
+      "dest": "/favicon.svg"
+    },
+    {
+      "src": "/(index\\.html|app\\.js|styles\\.css|favicon\\.svg)",
+      "dest": "/$1"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
+    }
+  ]
+}

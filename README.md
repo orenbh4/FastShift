@@ -1,6 +1,20 @@
 ﻿# FastShift
 
-Shift management app with an Express backend, PostgreSQL persistence, Supabase production database support, and email verification.
+Shift management app with a static frontend, Vercel API routes, Supabase PostgreSQL persistence, and email verification.
+
+## Project Structure
+
+The production deployment is designed for Vercel:
+
+- `index.html`, `styles.css`, and `app.js` stay as the frontend.
+- `/api` contains the Vercel API entry points.
+- `api/[...path].cjs` forwards API requests to the existing Express app during the transition.
+- `db.js` uses the Supabase/PostgreSQL connection from `api/_supabase.js`.
+- `mailer.js` is still used by API routes for verification and password reset emails.
+- `docker-compose.yml` is only for local PostgreSQL and is ignored by Vercel.
+- `.env`, `node_modules`, and log files must not be uploaded to GitHub.
+
+`server.js` is still useful for local development. In Vercel production it is imported by the API function and does not start its own listener.
 
 ## Local Development
 
@@ -74,7 +88,7 @@ If the phone cannot open the app, allow Node.js through Windows Firewall for pri
 
 ## Production On Vercel + Supabase
 
-Production should not use Docker. `docker-compose.yml` is only for local development.
+Production should not use Docker. `docker-compose.yml` is only for local development and is excluded from Vercel deployment by `.vercelignore`.
 
 In Vercel, configure these Environment Variables:
 
@@ -97,8 +111,9 @@ MAIL_FROM="FastShift <no-reply@your-domain.com>"
 ```
 
 Use the Supabase Transaction Pooler connection string for Vercel/serverless production.
+If the Vercel Supabase integration already created `POSTGRES_URL`, the app can use that too. `SUPABASE_DATABASE_URL` takes priority when both are configured.
 
-Do not add `HOST`, `PORT`, Docker, or local PostgreSQL settings to Vercel production.
+Do not add `HOST`, `PORT`, Docker, `.env`, `node_modules`, or local PostgreSQL settings to Vercel production or GitHub.
 
 ## API
 

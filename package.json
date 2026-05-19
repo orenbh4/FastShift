@@ -1,12 +1,15 @@
 {
   "name": "fastshift-project",
   "version": "1.0.0",
-  "description": "FastShift shift management app with Express, PostgreSQL, and email verification.",
+  "description": "FastShift shift management app with Vercel API routes, Supabase PostgreSQL, and email verification.",
   "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js && node --check app.js"
+    "check": "node --check server.js && node --check app.js && node --check \"api/[...path].cjs\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.0",
