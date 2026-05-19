@@ -11,7 +11,7 @@ export async function initDb() {
       email TEXT NOT NULL UNIQUE,
       phone TEXT,
       employee_number TEXT,
-      employment_status TEXT NOT NULL DEFAULT '×ž×©×¨×” ×ž×œ××”',
+      employment_status TEXT NOT NULL DEFAULT 'משרה מלאה',
       department TEXT NOT NULL DEFAULT 'NOC',
       role TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending_verification',
@@ -86,7 +86,7 @@ export async function initDb() {
 
     ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS employee_number TEXT;
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_status TEXT NOT NULL DEFAULT '×ž×©×¨×” ×ž×œ××”';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_status TEXT NOT NULL DEFAULT 'משרה מלאה';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS department TEXT NOT NULL DEFAULT 'NOC';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS password_updated_at TIMESTAMPTZ;
@@ -103,9 +103,13 @@ export async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_shift_assignments_department_week_start ON shift_assignments(department, week_start);
     ALTER TABLE availability_entries ADD COLUMN IF NOT EXISTS note TEXT;
     UPDATE users SET username = email WHERE username IS NULL;
-    UPDATE users SET role = '×ž× ×”×œ ×ž×¢×¨×›×ª' WHERE LOWER(email) = 'benhaimoren@gmail.com';
-    UPDATE users SET role = '×ž× ×”×œ ×ž×¢×¨×›×ª' WHERE role = '×ž× ×”×œ/×ª' AND (email = 'manager@fastshift.local' OR name = '×ž× ×”×œ ×ž×¢×¨×›×ª');
-    UPDATE users SET role = CASE WHEN department = 'SOC' THEN '×ž× ×”×œ SOC' ELSE '×ž× ×”×œ NOC' END WHERE role = '×ž× ×”×œ/×ª';
-    UPDATE users SET role = CASE WHEN department = 'SOC' THEN 'Tier 1' ELSE 'NOC - ×ž×©×¨×” ×ž×œ××”' END WHERE role = '×¢×•×‘×“/×ª';
+    UPDATE users SET employment_status = 'משרה מלאה' WHERE employment_status IN ('×ž×©×¨×” ×ž×œ××”', 'NOC - ×ž×©×¨×” ×ž×œ××”');
+    UPDATE users SET role = 'מנהל מערכת' WHERE LOWER(email) = 'benhaimoren@gmail.com';
+    UPDATE users SET role = 'מנהל מערכת' WHERE role = '×ž× ×”×œ ×ž×¢×¨×›×ª';
+    UPDATE users SET role = 'מנהל/ת' WHERE role = '×ž× ×”×œ/×ª';
+    UPDATE users SET role = 'עובד/ת' WHERE role = '×¢×•×‘×“/×ª';
+    UPDATE users SET role = 'מנהל מערכת' WHERE role = 'מנהל/ת' AND (email = 'manager@fastshift.local' OR name = 'מנהל מערכת');
+    UPDATE users SET role = CASE WHEN department = 'SOC' THEN 'מנהל SOC' ELSE 'מנהל NOC' END WHERE role = 'מנהל/ת';
+    UPDATE users SET role = CASE WHEN department = 'SOC' THEN 'Tier 1' ELSE 'NOC - משרה מלאה' END WHERE role = 'עובד/ת';
   `);
 }

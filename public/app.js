@@ -1196,7 +1196,8 @@ function isDepartmentTeamMember(user, department) {
 }
 
 function getOpenAttendance() {
-  return attendanceLog.find((entry) => entry.email === currentUser.email && !entry.clockOut);
+  const currentEmail = String(currentUser.email || "").trim().toLowerCase();
+  return attendanceLog.find((entry) => String(entry.email || "").trim().toLowerCase() === currentEmail && !entry.clockOut);
 }
 
 function getPermissions() {
@@ -2088,7 +2089,9 @@ function getUserForRecord(record) {
 }
 
 function getRecordEmploymentStatus(record) {
-  return getUserForRecord(record)?.employmentStatus || record.employmentStatus || "משרה מלאה";
+  const value = getUserForRecord(record)?.employmentStatus || record.employmentStatus || "משרה מלאה";
+  if (String(value).includes("×")) return "משרה מלאה";
+  return value;
 }
 
 function getRecordEmployeeNumber(record) {
@@ -3839,24 +3842,43 @@ async function saveAvailability(event) {
     setActionOutput(availabilityNotice, "ניתן לעדכן זמינות רק עבור המשתמש המחובר.");
     return;
   }
-  const entries = Array.from(document.querySelectorAll("[data-availability-toggle]")).map((input) => {
-    const noteInput = document.querySelector(
-      `[data-availability-note][data-shift-date="${input.dataset.shiftDate}"][data-shift-label="${input.dataset.shiftLabel}"]`,
-    );
-    const note = noteInput?.value.trim() || "";
-    return {
-      date: input.dataset.shiftDate,
-      shiftLabel: input.dataset.shiftLabel,
-      note,
-      status: input.checked ? "זמין/ה" : note ? "לא זמין/ה" : "",
-    };
-  });
+  const entries = Array.from(document.querySelectorAll("[data-availability-toggle]"))
+    .map((input) => {
+      const noteInput = document.querySelector(
+        `[data-availability-note][data-shift-date="${input.dataset.shiftDate}"][data-shift-label="${input.dataset.shiftLabel}"]`,
+      );
+      const note = noteInput?.value.trim() || "";
+      const existing = availabilityEntries.find(
+        (entry) => entry.userId === userId && entry.date === input.dataset.shiftDate && entry.shiftLabel === input.dataset.shiftLabel,
+      );
+      const nextEntry = {
+        date: input.dataset.shiftDate,
+        shiftLabel: input.dataset.shiftLabel,
+        note,
+        status: input.checked ? "זמין/ה" : note ? "לא זמין/ה" : "",
+      };
+      const currentStatus = existing?.status || "";
+      const currentNote = existing?.note || "";
+      return currentStatus === nextEntry.status && currentNote === nextEntry.note ? null : nextEntry;
+    })
+    .filter(Boolean);
+  if (!entries.length) {
+    setActionOutput(availabilityNotice, "אין שינויים חדשים לשמירה.");
+    return;
+  }
   setActionOutput(availabilityNotice, "שומר זמינות...");
   await request("/api/availability/bulk", {
     method: "POST",
     body: JSON.stringify({ userId, entries }),
   });
-  await loadAvailability();
+  for (const entry of entries) {
+    availabilityEntries = availabilityEntries.filter(
+      (item) => !(item.userId === userId && item.date === entry.date && item.shiftLabel === entry.shiftLabel),
+    );
+    if (entry.status) {
+      availabilityEntries.push({ ...entry, userId, userName: selectedUser.name });
+    }
+  }
   renderAvailabilitySchedule();
   renderSchedulingAvailability();
   setActionOutput(availabilityNotice, "הזמינות השבועית עודכנה.");
@@ -3975,11 +3997,17 @@ async function toggleClock() {
   });
   setActionOutput(attendanceState, "מעדכן שעון משמרת...");
   try {
-    await request("/api/attendance/toggle", {
+    const result = await request("/api/attendance/toggle", {
       method: "POST",
       body: JSON.stringify({ userId: currentUser.id, employee: currentUser.name, email: currentUser.email }),
     });
-    await loadAttendance();
+    if (result?.entry) {
+      attendanceLog = result.action === "clock_out"
+        ? attendanceLog.map((entry) => (entry.id === result.entry.id ? result.entry : entry))
+        : [result.entry, ...attendanceLog.filter((entry) => entry.id !== result.entry.id)];
+    } else {
+      await loadAttendance();
+    }
     renderAttendance();
     renderEmployees();
     renderHome();
