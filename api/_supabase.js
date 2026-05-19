@@ -29,6 +29,42 @@ if (!rawConnectionString) {
 }
 
 const connectionString = normalizeConnectionString(rawConnectionString);
+const connectionSource = process.env.SUPABASE_DATABASE_URL
+  ? "SUPABASE_DATABASE_URL"
+  : process.env.POSTGRES_URL
+    ? "POSTGRES_URL"
+    : "DATABASE_URL";
+
+function maskValue(value) {
+  if (!value) return "";
+  if (value.length <= 6) return "***";
+  return `${value.slice(0, 3)}***${value.slice(-3)}`;
+}
+
+export function getDatabaseConnectionDiagnostics() {
+  try {
+    const url = new URL(rawConnectionString);
+    return {
+      source: connectionSource,
+      protocol: url.protocol.replace(":", ""),
+      host: url.hostname,
+      port: url.port || "default",
+      database: url.pathname.replace(/^\//, "") || "",
+      user: url.username,
+      maskedUser: maskValue(url.username),
+      passwordLength: url.password ? decodeURIComponent(url.password).length : 0,
+      usesPoolerHost: /pooler\.supabase\.com$/i.test(url.hostname),
+      usesDbHost: /^db\..*\.supabase\.co$/i.test(url.hostname),
+      sslEnabled: Boolean(shouldUseSsl(rawConnectionString)),
+    };
+  } catch (error) {
+    return {
+      source: connectionSource,
+      parseError: error.message,
+      rawLength: String(rawConnectionString || "").length,
+    };
+  }
+}
 
 export const pool = new Pool({
   connectionString,

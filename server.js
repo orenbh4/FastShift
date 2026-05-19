@@ -1,10 +1,11 @@
-﻿import crypto from "node:crypto";
+import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import { pool, initDb } from "./db.js";
+import { getDatabaseConnectionDiagnostics } from "./api/_supabase.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./mailer.js";
 
 const app = express();
@@ -479,6 +480,7 @@ app.get("/api/db-health", async (_req, res) => {
     hasSupabaseDatabaseUrl: Boolean(process.env.SUPABASE_DATABASE_URL),
     hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
     nodeEnv: process.env.NODE_ENV || "",
+    connection: getDatabaseConnectionDiagnostics(),
     steps: [],
   };
 
