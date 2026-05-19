@@ -41,6 +41,7 @@ async function ensureDbInitialized() {
 }
 
 app.disable("x-powered-by");
+app.set("trust proxy", true);
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
@@ -294,10 +295,24 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function normalizeBaseUrl(value) {
+  const raw = String(value || "").trim().replace(/\/$/, "");
+  if (!raw || raw.includes("your-vercel-domain")) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw}`;
+}
+
 function getRequestBaseUrl(req) {
-  if (process.env.APP_BASE_URL) return process.env.APP_BASE_URL.replace(/\/$/, "");
-  const hostHeader = String(req.get("host") || `localhost:${port}`).replace(/\/$/, "");
-  return `${req.protocol}://${hostHeader}`;
+  const vercelProductionUrl = normalizeBaseUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+  if (process.env.VERCEL && vercelProductionUrl) return vercelProductionUrl;
+
+  const configuredBaseUrl = normalizeBaseUrl(process.env.APP_BASE_URL);
+  if (configuredBaseUrl) return configuredBaseUrl;
+
+  const forwardedHost = req.get("x-forwarded-host");
+  const hostHeader = String(forwardedHost || req.get("host") || `localhost:${port}`).replace(/\/$/, "");
+  const forwardedProto = String(req.get("x-forwarded-proto") || req.protocol || "http").split(",")[0].trim();
+  return `${forwardedProto}://${hostHeader}`;
 }
 
 function generateTemporaryPassword() {

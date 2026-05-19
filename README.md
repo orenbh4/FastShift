@@ -115,6 +115,8 @@ If the Vercel Supabase integration already created `POSTGRES_URL`, the app can u
 
 Do not add `HOST`, `PORT`, Docker, `.env`, `node_modules`, or local PostgreSQL settings to Vercel production or GitHub.
 
+On Vercel, verification and password-reset links prefer the automatic `VERCEL_PROJECT_PRODUCTION_URL` value so links stay on the stable production domain instead of a temporary deployment URL. Keep `APP_BASE_URL` set to the production/custom domain if you use one.
+
 ## API
 
 - `POST /api/users/invite` creates a pending user and sends a verification email.
