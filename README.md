@@ -8,7 +8,7 @@ The production deployment is designed for Vercel:
 
 - `public/index.html`, `public/styles.css`, and `public/app.js` are served as the frontend on Vercel.
 - `/api` contains the Vercel API entry points.
-- `api/[...path].js` forwards API requests to the existing Express app during the transition.
+- `api/index.js` forwards API requests to the existing Express app during the transition.
 - `db.js` uses the Supabase/PostgreSQL connection from `api/_supabase.js`.
 - `mailer.js` is still used by API routes for verification and password reset emails.
 - `docker-compose.yml` is only for local PostgreSQL and is ignored by Vercel.
