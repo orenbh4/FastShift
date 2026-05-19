@@ -1,18 +1,6 @@
-﻿import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
 
 const { Pool } = pg;
-
-export function createSupabaseAdminClient() {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing Supabase environment variables");
-  }
-
-  return createClient(supabaseUrl, serviceRoleKey);
-}
 
 function shouldUseSsl(connectionString) {
   if (String(process.env.DB_SSL || "").toLowerCase() === "false") return false;

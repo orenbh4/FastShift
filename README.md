@@ -6,7 +6,7 @@ Shift management app with a static frontend, Vercel API routes, Supabase Postgre
 
 The production deployment is designed for Vercel:
 
-- `index.html`, `styles.css`, and `app.js` stay as the frontend.
+- `public/index.html`, `public/styles.css`, and `public/app.js` are served as the frontend on Vercel.
 - `/api` contains the Vercel API entry points.
 - `api/[...path].cjs` forwards API requests to the existing Express app during the transition.
 - `db.js` uses the Supabase/PostgreSQL connection from `api/_supabase.js`.
