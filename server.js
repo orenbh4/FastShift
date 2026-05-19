@@ -11,6 +11,7 @@ const app = express();
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || "0.0.0.0";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const publicDir = path.join(__dirname, "public");
 const holidayCache = new Map();
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
 const authTokenTtlMs = Number(process.env.AUTH_TOKEN_TTL_HOURS || 12) * 60 * 60 * 1000;
@@ -82,7 +83,10 @@ app.use((req, res, next) => {
   if (blockedFiles.has(requestedPath) || requestedPath.endsWith(".log")) return res.sendStatus(404);
   next();
 });
-app.use(express.static(__dirname, { dotfiles: "deny", fallthrough: true }));
+app.use(express.static(publicDir, { dotfiles: "deny", fallthrough: true }));
+app.get(["/", "/index.html"], (_req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
 app.use("/api", async (req, _res, next) => {
   if (req.path === "/health") return next();
   try {
