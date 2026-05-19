@@ -3839,35 +3839,27 @@ async function saveAvailability(event) {
     setActionOutput(availabilityNotice, "ניתן לעדכן זמינות רק עבור המשתמש המחובר.");
     return;
   }
-  const updates = Array.from(document.querySelectorAll("[data-availability-toggle]")).map((input) => {
+  const entries = Array.from(document.querySelectorAll("[data-availability-toggle]")).map((input) => {
     const noteInput = document.querySelector(
       `[data-availability-note][data-shift-date="${input.dataset.shiftDate}"][data-shift-label="${input.dataset.shiftLabel}"]`,
     );
     const note = noteInput?.value.trim() || "";
-    const payload = {
-      userId,
+    return {
       date: input.dataset.shiftDate,
       shiftLabel: input.dataset.shiftLabel,
       note,
+      status: input.checked ? "זמין/ה" : note ? "לא זמין/ה" : "",
     };
-    return input.checked
-      ? request("/api/availability", {
-          method: "POST",
-          body: JSON.stringify({ ...payload, status: "זמין/ה" }),
-        })
-      : note
-        ? request("/api/availability", {
-            method: "POST",
-            body: JSON.stringify({ ...payload, status: "לא זמין/ה" }),
-          })
-      : request("/api/availability", {
-          method: "DELETE",
-          body: JSON.stringify(payload),
-        });
   });
-  await Promise.all(updates);
+  setActionOutput(availabilityNotice, "שומר זמינות...");
+  await request("/api/availability/bulk", {
+    method: "POST",
+    body: JSON.stringify({ userId, entries }),
+  });
+  await loadAvailability();
+  renderAvailabilitySchedule();
+  renderSchedulingAvailability();
   setActionOutput(availabilityNotice, "הזמינות השבועית עודכנה.");
-  await refreshAll();
   translateStaticContent();
 }
 
@@ -3977,11 +3969,29 @@ async function deleteUser(userId) {
 }
 
 async function toggleClock() {
-  await request("/api/attendance/toggle", {
-    method: "POST",
-    body: JSON.stringify({ userId: currentUser.id }),
+  const buttons = [clockToggle, homeClockButton].filter(Boolean);
+  buttons.forEach((button) => {
+    button.disabled = true;
   });
-  await refreshAll();
+  setActionOutput(attendanceState, "מעדכן שעון משמרת...");
+  try {
+    await request("/api/attendance/toggle", {
+      method: "POST",
+      body: JSON.stringify({ userId: currentUser.id, employee: currentUser.name, email: currentUser.email }),
+    });
+    await loadAttendance();
+    renderAttendance();
+    renderEmployees();
+    renderHome();
+    if (can("reports") && isViewActive("reports")) await renderReports();
+    translateStaticContent();
+  } catch (error) {
+    setActionOutput(attendanceState, error.message);
+  } finally {
+    buttons.forEach((button) => {
+      button.disabled = false;
+    });
+  }
 }
 
 function syncManualAttendanceTimes() {

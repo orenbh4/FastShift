@@ -1183,6 +1183,59 @@ app.post("/api/availability", async (req, res, next) => {
   }
 });
 
+app.post("/api/availability/bulk", async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    requireFields(req.body, ["userId"]);
+    const entries = Array.isArray(req.body.entries) ? req.body.entries : [];
+    const actor = await requireRoles(req, ["מנהל/ת", "אחראי/ת משמרת", ...employeeRoles]);
+    if (isEmployeeRole(actor.role) && actor.id !== req.body.userId) {
+      return res.status(403).json({ error: "Forbidden: employees can only update their own availability." });
+    }
+    const selectedUser = isSystemAdmin(actor.role)
+      ? await client.query("SELECT id FROM users WHERE id = $1 LIMIT 1", [req.body.userId])
+      : await client.query("SELECT id FROM users WHERE id = $1 AND department = $2 LIMIT 1", [req.body.userId, actor.department || "NOC"]);
+    if (!selectedUser.rowCount) return res.status(404).json({ error: "User not found in this department." });
+
+    await client.query("BEGIN");
+    let saved = 0;
+    let deleted = 0;
+    for (const entry of entries) {
+      const date = String(entry.date || "").trim();
+      const shiftLabel = String(entry.shiftLabel || "").trim();
+      const note = String(entry.note || "").trim();
+      const status = String(entry.status || "").trim();
+      if (!date || !shiftLabel) continue;
+
+      if (status) {
+        await client.query(
+          `
+            INSERT INTO availability_entries (id, user_id, availability_date, shift_label, status, note)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (user_id, availability_date, shift_label)
+            DO UPDATE SET status = EXCLUDED.status, note = EXCLUDED.note, updated_at = NOW()
+          `,
+          [crypto.randomUUID(), req.body.userId, date, shiftLabel, status, note],
+        );
+        saved += 1;
+      } else {
+        const result = await client.query(
+          "DELETE FROM availability_entries WHERE user_id = $1 AND availability_date = $2 AND shift_label = $3",
+          [req.body.userId, date, shiftLabel],
+        );
+        deleted += result.rowCount;
+      }
+    }
+    await client.query("COMMIT");
+    res.json({ ok: true, saved, deleted });
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    next(error);
+  } finally {
+    client.release();
+  }
+});
+
 app.delete("/api/availability", async (req, res, next) => {
   try {
     requireFields(req.body, ["userId", "date", "shiftLabel"]);
@@ -1233,19 +1286,30 @@ app.get("/api/attendance", async (_req, res, next) => {
 app.post("/api/attendance/toggle", async (req, res, next) => {
   const client = await pool.connect();
   try {
-    requireFields(req.body, ["employee", "email"]);
     const actor = await requireRoles(req, ["מנהל/ת", "אחראי/ת משמרת", ...employeeRoles]);
-    const email = req.body.email.trim().toLowerCase();
+    const requestedUserId = String(req.body.userId || "").trim();
+    const requestedEmail = String(req.body.email || "").trim().toLowerCase();
+    if (!requestedUserId && !requestedEmail) {
+      return res.status(400).json({ error: "userId or email is required." });
+    }
     await client.query("BEGIN");
     const selectedUser = await client.query(
-      "SELECT id, name, email, department, employee_number, employment_status FROM users WHERE email = $1 AND status = 'active' LIMIT 1 FOR UPDATE",
-      [email],
+      `
+        SELECT id, name, email, department, employee_number, employment_status
+        FROM users
+        WHERE status = 'active'
+          AND ($1::uuid IS NOT NULL AND id = $1::uuid OR $2::text <> '' AND LOWER(email) = LOWER($2))
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [requestedUserId || null, requestedEmail],
     );
     if (!selectedUser.rowCount) {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "User not found." });
     }
     const targetUser = selectedUser.rows[0];
+    const email = String(targetUser.email || "").trim().toLowerCase();
 
     if (!isManagerRole(actor.role) && actor.email !== email) {
       await client.query("ROLLBACK");
