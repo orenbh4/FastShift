@@ -88,7 +88,7 @@ app.get(["/", "/index.html"], (_req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 app.use("/api", async (req, _res, next) => {
-  if (req.path === "/health") return next();
+  if (req.path === "/health" || req.path === "/db-health") return next();
   try {
     await ensureDbInitialized();
     next();
@@ -455,6 +455,43 @@ function isEmployeeRole(role) {
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
+});
+
+app.get("/api/db-health", async (_req, res) => {
+  const diagnostics = {
+    ok: false,
+    hasPostgresUrl: Boolean(process.env.POSTGRES_URL),
+    hasSupabaseDatabaseUrl: Boolean(process.env.SUPABASE_DATABASE_URL),
+    hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+    nodeEnv: process.env.NODE_ENV || "",
+    steps: [],
+  };
+
+  try {
+    await pool.query("SELECT 1 AS ok");
+    diagnostics.steps.push("query");
+  } catch (error) {
+    return res.status(500).json({
+      ...diagnostics,
+      failedAt: "query",
+      code: error.code || "",
+      message: error.message || "Database query failed.",
+    });
+  }
+
+  try {
+    await ensureDbInitialized();
+    diagnostics.steps.push("initDb");
+  } catch (error) {
+    return res.status(500).json({
+      ...diagnostics,
+      failedAt: "initDb",
+      code: error.code || "",
+      message: error.message || "Database initialization failed.",
+    });
+  }
+
+  res.json({ ...diagnostics, ok: true });
 });
 
 app.get("/api/jewish-holidays", async (req, res, next) => {
