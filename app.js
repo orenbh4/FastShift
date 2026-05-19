@@ -3623,7 +3623,6 @@ async function registerUser(event) {
     registerNotice.textContent = result.emailSent
       ? `המשתמש נוצר ונשלחו פרטי התחברות זמניים וקישור אימות אל ${payload.email}.`
       : `המשתמש נוצר, אבל SMTP לא מוגדר. קישור בדיקה: ${result.verifyUrl}`;
-    await loadUsers();
   } catch (error) {
     registerNotice.textContent = error.message;
   }
