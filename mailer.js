@@ -1,31 +1,26 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-function smtpConfigured() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+function getResend() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  return new Resend(apiKey);
 }
+
+const mailFrom = () => process.env.MAIL_FROM || "FastShift <onboarding@resend.dev>";
 
 export async function sendVerificationEmail({ to, name, token, temporaryPassword, baseUrl = process.env.APP_BASE_URL || "http://localhost:3000" }) {
   const verifyUrl = `${baseUrl}/api/verify?token=${encodeURIComponent(token)}`;
+  const resend = getResend();
 
-  if (!smtpConfigured()) {
+  if (!resend) {
     console.log(`[mail skipped] Verification link for ${to}: ${verifyUrl}`);
     console.log(`[mail skipped] Temporary password for ${to}: ${temporaryPassword}`);
     return { sent: false, verifyUrl };
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: String(process.env.SMTP_SECURE).toLowerCase() === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
   try {
-    await transporter.sendMail({
-      from: process.env.MAIL_FROM || "FastShift <no-reply@fastshift.local>",
+    await resend.emails.send({
+      from: mailFrom(),
       to,
       subject: "פרטי התחברות ואימות משתמש ל-FastShift",
       html: `
@@ -49,26 +44,17 @@ export async function sendVerificationEmail({ to, name, token, temporaryPassword
 
 export async function sendPasswordResetEmail({ to, name, token, baseUrl = process.env.APP_BASE_URL || "http://localhost:3000" }) {
   const resetUrl = `${baseUrl}/api/reset-password?token=${encodeURIComponent(token)}`;
+  const resend = getResend();
 
-  if (!smtpConfigured()) {
+  if (!resend) {
     const err = new Error("שירות המייל אינו מוגדר. פנה למנהל המערכת.");
     err.status = 503;
     throw err;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: String(process.env.SMTP_SECURE).toLowerCase() === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
   try {
-    await transporter.sendMail({
-      from: process.env.MAIL_FROM || "FastShift <no-reply@fastshift.local>",
+    await resend.emails.send({
+      from: mailFrom(),
       to,
       subject: "איפוס סיסמה ל-FastShift",
       html: `
