@@ -8,6 +8,17 @@ function getResend() {
 
 const mailFrom = () => process.env.MAIL_FROM || "FastShift <onboarding@resend.dev>";
 
+async function sendViaResend(resend, payload) {
+  const { data, error } = await resend.emails.send(payload);
+  if (error) {
+    console.error("[mail error] Resend API error:", JSON.stringify(error));
+    const err = new Error(error.message || "שליחת המייל נכשלה.");
+    err.status = 503;
+    throw err;
+  }
+  return data;
+}
+
 export async function sendVerificationEmail({ to, name, token, temporaryPassword, baseUrl = process.env.APP_BASE_URL || "http://localhost:3000" }) {
   const verifyUrl = `${baseUrl}/api/verify?token=${encodeURIComponent(token)}`;
   const resend = getResend();
@@ -19,7 +30,7 @@ export async function sendVerificationEmail({ to, name, token, temporaryPassword
   }
 
   try {
-    await resend.emails.send({
+    await sendViaResend(resend, {
       from: mailFrom(),
       to,
       subject: "פרטי התחברות ואימות משתמש ל-FastShift",
@@ -53,7 +64,7 @@ export async function sendPasswordResetEmail({ to, name, token, baseUrl = proces
   }
 
   try {
-    await resend.emails.send({
+    await sendViaResend(resend, {
       from: mailFrom(),
       to,
       subject: "איפוס סיסמה ל-FastShift",
@@ -70,7 +81,7 @@ export async function sendPasswordResetEmail({ to, name, token, baseUrl = proces
     return { sent: true };
   } catch (err) {
     console.error("[mail error] Failed to send password reset email:", err.message);
-    const mailErr = new Error("שליחת המייל נכשלה. נסה שוב מאוחר יותר.");
+    const mailErr = new Error(err.message || "שליחת המייל נכשלה. נסה שוב מאוחר יותר.");
     mailErr.status = 503;
     throw mailErr;
   }
