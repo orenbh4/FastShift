@@ -51,8 +51,9 @@ export async function sendPasswordResetEmail({ to, name, token, baseUrl = proces
   const resetUrl = `${baseUrl}/api/reset-password?token=${encodeURIComponent(token)}`;
 
   if (!smtpConfigured()) {
-    console.log(`[mail skipped] Password reset link for ${to}: ${resetUrl}`);
-    return { sent: false, resetUrl };
+    const err = new Error("שירות המייל אינו מוגדר. פנה למנהל המערכת.");
+    err.status = 503;
+    throw err;
   }
 
   const transporter = nodemailer.createTransport({
@@ -80,9 +81,11 @@ export async function sendPasswordResetEmail({ to, name, token, baseUrl = proces
         </div>
       `,
     });
-    return { sent: true, resetUrl };
+    return { sent: true };
   } catch (err) {
     console.error("[mail error] Failed to send password reset email:", err.message);
-    return { sent: false, resetUrl };
+    const mailErr = new Error("שליחת המייל נכשלה. נסה שוב מאוחר יותר.");
+    mailErr.status = 503;
+    throw mailErr;
   }
 }

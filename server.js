@@ -629,18 +629,14 @@ app.post("/api/auth/forgot-password", rateLimit({ windowMs: 15 * 60 * 1000, max:
       [user.id, token],
     );
 
-    const emailResult = await sendPasswordResetEmail({
+    await sendPasswordResetEmail({
       to: user.email,
       name: user.name,
       token,
       baseUrl: getRequestBaseUrl(req),
     });
 
-    res.json({
-      ok: true,
-      emailSent: emailResult.sent,
-      resetUrl: emailResult.sent ? undefined : emailResult.resetUrl,
-    });
+    res.json({ ok: true, emailSent: true });
   } catch (error) {
     next(error);
   }

@@ -1507,9 +1507,7 @@ async function requestPasswordReset(event) {
       method: "POST",
       body: JSON.stringify({ email }),
     });
-    forgotNotice.textContent = result.resetUrl
-      ? `SMTP לא מוגדר. קישור איפוס לבדיקה: ${result.resetUrl}`
-      : "אם המייל קיים במערכת, נשלח אליו קישור לבחירת סיסמה חדשה.";
+    forgotNotice.textContent = "אם המייל קיים במערכת, נשלח אליו קישור לבחירת סיסמה חדשה.";
   } catch (error) {
     forgotNotice.textContent = error.message || "לא ניתן לשלוח קישור איפוס כרגע.";
   }
