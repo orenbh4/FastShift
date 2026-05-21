@@ -23,24 +23,28 @@ export async function sendVerificationEmail({ to, name, token, temporaryPassword
     },
   });
 
-  await transporter.sendMail({
-    from: process.env.MAIL_FROM || "FastShift <no-reply@fastshift.local>",
-    to,
-    subject: "פרטי התחברות ואימות משתמש ל-FastShift",
-    html: `
-      <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.6">
-        <h2>שלום ${name},</h2>
-        <p>נוצר עבורך משתמש במערכת FastShift.</p>
-        <p><strong>שם משתמש:</strong> ${to}</p>
-        <p><strong>סיסמה זמנית:</strong> ${temporaryPassword}</p>
-        <p>כדי להפעיל את המשתמש יש ללחוץ על הקישור, להזין סיסמה חדשה ולאשר אותה:</p>
-        <p><a href="${verifyUrl}">אימות משתמש ועדכון סיסמה</a></p>
-        <p>לאחר העדכון, שם המשתמש שלך יהיה כתובת המייל הזו והסיסמה תהיה הסיסמה החדשה שבחרת.</p>
-      </div>
-    `,
-  });
-
-  return { sent: true, verifyUrl };
+  try {
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM || "FastShift <no-reply@fastshift.local>",
+      to,
+      subject: "פרטי התחברות ואימות משתמש ל-FastShift",
+      html: `
+        <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.6">
+          <h2>שלום ${name},</h2>
+          <p>נוצר עבורך משתמש במערכת FastShift.</p>
+          <p><strong>שם משתמש:</strong> ${to}</p>
+          <p><strong>סיסמה זמנית:</strong> ${temporaryPassword}</p>
+          <p>כדי להפעיל את המשתמש יש ללחוץ על הקישור, להזין סיסמה חדשה ולאשר אותה:</p>
+          <p><a href="${verifyUrl}">אימות משתמש ועדכון סיסמה</a></p>
+          <p>לאחר העדכון, שם המשתמש שלך יהיה כתובת המייל הזו והסיסמה תהיה הסיסמה החדשה שבחרת.</p>
+        </div>
+      `,
+    });
+    return { sent: true, verifyUrl };
+  } catch (err) {
+    console.error("[mail error] Failed to send verification email:", err.message);
+    return { sent: false, verifyUrl };
+  }
 }
 
 export async function sendPasswordResetEmail({ to, name, token, baseUrl = process.env.APP_BASE_URL || "http://localhost:3000" }) {
@@ -61,20 +65,24 @@ export async function sendPasswordResetEmail({ to, name, token, baseUrl = proces
     },
   });
 
-  await transporter.sendMail({
-    from: process.env.MAIL_FROM || "FastShift <no-reply@fastshift.local>",
-    to,
-    subject: "איפוס סיסמה ל-FastShift",
-    html: `
-      <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.6">
-        <h2>שלום ${name || ""},</h2>
-        <p>קיבלנו בקשה לאיפוס הסיסמה שלך במערכת FastShift.</p>
-        <p>כדי לבחור סיסמה חדשה יש ללחוץ על הקישור הבא:</p>
-        <p><a href="${resetUrl}">בחירת סיסמה חדשה</a></p>
-        <p>אם לא ביקשת איפוס סיסמה, אפשר להתעלם מהמייל הזה.</p>
-      </div>
-    `,
-  });
-
-  return { sent: true, resetUrl };
+  try {
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM || "FastShift <no-reply@fastshift.local>",
+      to,
+      subject: "איפוס סיסמה ל-FastShift",
+      html: `
+        <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.6">
+          <h2>שלום ${name || ""},</h2>
+          <p>קיבלנו בקשה לאיפוס הסיסמה שלך במערכת FastShift.</p>
+          <p>כדי לבחור סיסמה חדשה יש ללחוץ על הקישור הבא:</p>
+          <p><a href="${resetUrl}">בחירת סיסמה חדשה</a></p>
+          <p>אם לא ביקשת איפוס סיסמה, אפשר להתעלם מהמייל הזה.</p>
+        </div>
+      `,
+    });
+    return { sent: true, resetUrl };
+  } catch (err) {
+    console.error("[mail error] Failed to send password reset email:", err.message);
+    return { sent: false, resetUrl };
+  }
 }
