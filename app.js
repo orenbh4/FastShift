@@ -1500,19 +1500,25 @@ async function enterApp(event) {
 async function requestPasswordReset(event) {
   event.preventDefault();
   const email = document.querySelector("#forgotEmail").value.trim().toLowerCase();
+  const submitBtn = forgotPasswordForm.querySelector("button[type=submit]");
   forgotNotice.textContent = "";
   forgotNotice.style.color = "";
+  submitBtn.disabled = true;
+  submitBtn.textContent = "שולח...";
 
   try {
-    const result = await request("/api/auth/forgot-password", {
+    await request("/api/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify({ email }),
     });
     forgotNotice.textContent = "אם המייל קיים במערכת, ישלח אליו קישור לאיפוס סיסמה.";
     forgotNotice.style.color = "var(--success)";
+    submitBtn.textContent = "נשלח ✓";
   } catch (error) {
     forgotNotice.textContent = error.message || "לא ניתן לשלוח קישור איפוס כרגע.";
     forgotNotice.style.color = "var(--danger, #c0392b)";
+    submitBtn.disabled = false;
+    submitBtn.textContent = "שליחת קישור איפוס";
   }
 }
 
