@@ -606,7 +606,7 @@ app.get("/api/auth/me", async (req, res, next) => {
   }
 });
 
-app.post("/api/auth/forgot-password", rateLimit({ windowMs: 15 * 60 * 1000, max: 8, keyPrefix: "forgot-password" }), async (req, res, next) => {
+app.post("/api/auth/forgot-password", rateLimit({ windowMs: 15 * 60 * 1000, max: 20, keyPrefix: "forgot-password" }), async (req, res, next) => {
   try {
     requireFields(req.body, ["email"]);
     const email = req.body.email.trim().toLowerCase();
