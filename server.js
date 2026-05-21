@@ -1561,7 +1561,7 @@ app.get("/api/reports", async (req, res, next) => {
 app.use((error, _req, res, _next) => {
   console.error(error);
   const status = error.status || 500;
-  res.status(status).json({ error: status >= 500 ? "Server error." : error.message || "Request failed." });
+  res.status(status).json({ error: status === 500 ? "Server error." : error.message || "Request failed." });
 });
 
 const isEntrypoint = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

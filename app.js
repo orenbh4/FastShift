@@ -1501,15 +1501,18 @@ async function requestPasswordReset(event) {
   event.preventDefault();
   const email = document.querySelector("#forgotEmail").value.trim().toLowerCase();
   forgotNotice.textContent = "";
+  forgotNotice.style.color = "";
 
   try {
     const result = await request("/api/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify({ email }),
     });
-    forgotNotice.textContent = "אם המייל קיים במערכת, נשלח אליו קישור לבחירת סיסמה חדשה.";
+    forgotNotice.textContent = "אם המייל קיים במערכת, ישלח אליו קישור לאיפוס סיסמה.";
+    forgotNotice.style.color = "var(--success)";
   } catch (error) {
     forgotNotice.textContent = error.message || "לא ניתן לשלוח קישור איפוס כרגע.";
+    forgotNotice.style.color = "var(--danger, #c0392b)";
   }
 }
 
